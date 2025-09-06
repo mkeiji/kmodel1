@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sentiment Analyzer</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body>
+    <h1>🎬 Sentiment Analyzer</h1>
+    <textarea id="review" rows="5" cols="50" placeholder="Type your movie review here..."></textarea><br><br>
+    <button onclick="analyze()">Analyze</button>
+
+    <h3>Prediction:</h3>
+    <p id="result"></p>
+
+    <script>
+        async function analyze() {
+            const text = document.getElementById("review").value;
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ text })
+            });
+            const data = await response.json();
+            document.getElementById("result").innerText =
+                `Sentiment: ${data.sentiment}`;
+        }
+    </script>
+</body>
+</html>
