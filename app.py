@@ -7,7 +7,7 @@ import joblib
 model = joblib.load("model/sentiment_model.pkl")
 vectorizer = joblib.load("model/vectorizer.pkl")
 
-app = FastAPI(title="Sentiment Analysis API")
+app = FastAPI(title="Sentiment Analysis - Kmodel")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
