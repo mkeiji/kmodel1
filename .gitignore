@@ -29,3 +29,6 @@ Thumbs.db
 # IDE configs
 .vscode/
 .idea/
+
+# trained models
+models/

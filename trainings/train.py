@@ -6,10 +6,17 @@ from sklearn.pipeline import Pipeline
 import joblib
 import os
 
+# Ensure folders exist
+def ensure_model_dirs(relative_path):
+    base_dir = os.path.join(os.path.dirname(__file__), '..')
+    full_path = os.path.abspath(os.path.join(base_dir, relative_path))
+    os.makedirs(full_path, exist_ok=True)
+    return full_path
+
 # Paths
-DATA_PATH = "IMDB Dataset.csv"
-MODEL_PATH = "model/sentiment_model.pkl"
-VECTORIZER_PATH = "model/vectorizer.pkl"
+DATA_PATH = "data/IMDB Dataset.csv"
+MODEL_PATH = os.path.join(ensure_model_dirs("models/naive_bayes"), "sentiment_model.pkl")
+VECTORIZER_PATH = os.path.join(ensure_model_dirs("models/naive_bayes"), "vectorizer.pkl")
 
 def train():
     if not os.path.exists(DATA_PATH):
