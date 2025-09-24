@@ -11,14 +11,21 @@ pip install -r requirements.txt
 Place the dataset IMDB Dataset.csv in the root folder.
 ```
 
-2. Train the model:
+2. Train the naive-bayes model:
 
 ```bash
-make train
+make train-1
 ```
 This will generate sentiment_model.pkl and vectorizer.pkl.
 
-3. Running Locally
+3. Train the hugging-face model:
+
+```bash
+make train-2
+```
+This will generate the model inside the `hugging_face` folder.
+
+4. Running Locally
 ```bash
 make run
 ```

@@ -4,26 +4,95 @@
     <meta charset="UTF-8">
     <title>Sentiment Analyzer</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+        }
+
+        textarea {
+            width: 60%;
+            padding: 10px;
+            font-size: 1rem;
+        }
+
+        button {
+            margin-top: 1rem;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .results {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .result-box {
+            padding: 1rem;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-width: 200px;
+        }
+
+        .positive {
+            color: white;
+            background-color: #007bff; /* Blue */
+        }
+
+        .negative {
+            color: white;
+            background-color: #dc3545; /* Red */
+        }
+    </style>
 </head>
 <body>
     <h1>🎬 Sentiment Analyzer</h1>
     <textarea id="review" rows="5" cols="50" placeholder="Type your movie review here..."></textarea><br><br>
     <button onclick="analyze()">Analyze</button>
 
-    <h3>Prediction:</h3>
-    <p id="result"></p>
+    <div class="results">
+        <div id="result1" class="result-box">Naive Bayes: —</div>
+        <div id="result2" class="result-box">Hugging Face: —</div>
+    </div>
 
     <script>
         async function analyze() {
             const text = document.getElementById("review").value;
-            const response = await fetch("/predict", {
+
+            // Naive Bayes API call
+            const nbResponse = await fetch("/predict/naive-bayes", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ text })
             });
-            const data = await response.json();
-            document.getElementById("result").innerText =
-                `Sentiment: ${data.sentiment}`;
+            const nbData = await nbResponse.json();
+            updateResult("result1", "Naive Bayes", nbData.sentiment);
+
+            // Hugging Face API call
+            const hfResponse = await fetch("/predict/hugging-face", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ text })
+            });
+            const hfData = await hfResponse.json();
+            updateResult("result2", "Hugging Face", hfData.sentiment);
+        }
+
+        function updateResult(id, label, sentiment) {
+            const el = document.getElementById(id);
+            el.innerText = `${label}: ${sentiment}`;
+            el.className = "result-box " + (sentiment.toLowerCase() === "positive" ? "positive" : "negative");
         }
     </script>
 </body>

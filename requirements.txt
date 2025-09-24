@@ -2,3 +2,8 @@ fastapi
 uvicorn[standard]
 scikit-learn
 joblib
+torch
+accelerate
+datasets
+scikit-learn
+transformers
