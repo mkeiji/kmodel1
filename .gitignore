@@ -32,3 +32,6 @@ Thumbs.db
 
 # trained models
 models/
+
+# evaluation images
+evaluation/confusion-matrix/

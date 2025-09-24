@@ -8,35 +8,30 @@ import joblib
 class Review(BaseModel):
     text: str
 
-# naive bayes model
-nb_model = joblib.load("models/naive_bayes/sentiment_model.pkl")
-vectorizer = joblib.load("models/naive_bayes/vectorizer.pkl")
+# ---------- Naive Bayes pipeline ----------
+nb_pipeline = joblib.load("models/naive_bayes/sentiment_pipeline.pkl")
 
-# hugging face model
+# ---------- Hugging Face model ----------
 model_path = "models/hugging_face"
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
-pipeline = TextClassificationPipeline(model=model, tokenizer=tokenizer, framework="pt")
+hf_pipeline = TextClassificationPipeline(model=model, tokenizer=tokenizer, framework="pt")
 
-# FastAPI app
+# ---------- FastAPI app ----------
 app = FastAPI(title="Sentiment Analysis - Kmodel")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# endpoints
+# ---------- Endpoints ----------
 @app.get("/")
 def read_index():
     return FileResponse("static/index.html")
 
 @app.post("/predict/naive-bayes")
-def predict_sentiment(review: Review):
-    X = vectorizer.transform([review.text])
-    prediction = nb_model.predict(X)[0]
+def predict_naive_bayes(review: Review):
+    prediction = nb_pipeline.predict([review.text])[0]
     return {"review": review.text, "sentiment": prediction}
 
 @app.post("/predict/hugging-face")
-async def predict(review: Review):
-    prediction = pipeline(review.text)[0]
-    return {
-        "sentiment": prediction["label"],
-        "review": float(prediction["score"])
-    }
+def predict_hugging_face(review: Review):
+    prediction = hf_pipeline(review.text, truncation=True, max_length=128)[0]
+    return {"review": review.text, "sentiment": prediction["label"], "score": float(prediction["score"])}
