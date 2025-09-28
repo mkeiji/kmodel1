@@ -11,7 +11,7 @@ on:
           - 'Dockerfile'
           - 'app.py'
           - 'requirements.txt'
-          - '.github/workflows/ci-build.yml'
+          - '.github/workflows/ci-docker.yml'
     pull_request:
         branches:
             - master
