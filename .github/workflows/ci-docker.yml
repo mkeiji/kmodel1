@@ -1,0 +1,28 @@
+name: Build
+
+on:
+    push:
+        branches:
+            - master
+        paths: &paths
+          - 'trainings/**'
+          - 'static/**'
+          - 'data/**'
+          - 'Dockerfile'
+          - 'app.py'
+          - 'requirements.txt'
+          - '.github/workflows/ci-build.yml'
+    pull_request:
+        branches:
+            - master
+        paths: *paths
+
+jobs:
+    build:
+        uses: mkeiji/kcicd/.github/workflows/ci-docker.yml@master
+        with:
+            build_context: ./
+            dockerfile: ./Dockerfile
+            image_suffix: ${{ github.repository }}
+            release_branch: master
+        secrets: inherit
