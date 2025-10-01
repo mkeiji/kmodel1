@@ -23,6 +23,6 @@ jobs:
         with:
             build_context: ./
             dockerfile: ./Dockerfile
-            image_suffix: ${{ github.repository }}
+            image_suffix: kmodel1
             release_branch: master
         secrets: inherit
