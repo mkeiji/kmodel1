@@ -1,23 +1,27 @@
-import os
 import pandas as pd
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
 import torch
+import transformers
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import mlflow
+import mlflow.transformers
+from mlflow.models.signature import infer_signature
 
-# 1. Load a subset of IMDB (first 5000 reviews for speed)
+# ---------------------------
+# 1. Load dataset
+# ---------------------------
 df = pd.read_csv("data/IMDB Dataset.csv").head(5000)
-
-# Map "positive"/"negative" → 1/0
 df["label"] = df["sentiment"].map({"positive": 1, "negative": 0})
 
-# Split into train/test
 train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
-
 train_dataset = Dataset.from_pandas(train_df)
 test_dataset = Dataset.from_pandas(test_df)
 
+# ---------------------------
 # 2. Tokenizer
+# ---------------------------
 model_name = "distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
@@ -30,27 +34,16 @@ test_dataset = test_dataset.map(tokenize, batched=True)
 train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 test_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 
-# Ensure folders exist
-def ensure_model_dirs(relative_path):
-    base_dir = os.path.join(os.path.dirname(__file__), '..')
-    full_path = os.path.abspath(os.path.join(base_dir, relative_path))
-    os.makedirs(full_path, exist_ok=True)
-    return full_path
-
+# ---------------------------
 # 3. Model
-id2label = {0: "negative", 1: "positive"}
-label2id = {"negative": 0, "positive": 1}
-model = AutoModelForSequenceClassification.from_pretrained(
-    model_name,
-    num_labels=2,
-    id2label=id2label,
-    label2id=label2id
-)
+# ---------------------------
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
 
-# 4. Training args (backward-compatible)
-training_args_path = ensure_model_dirs("models/hugging_face/training_args")
+# ---------------------------
+# 4. Training arguments
+# ---------------------------
 training_args = TrainingArguments(
-    output_dir=training_args_path,
+    output_dir="./models/hugging_face/training_args",
     do_eval=True,
     learning_rate=2e-5,
     per_device_train_batch_size=8,
@@ -62,21 +55,62 @@ training_args = TrainingArguments(
     save_total_limit=1,
 )
 
-# 5. Trainer
+# ---------------------------
+# 5. Metrics for evaluation
+# ---------------------------
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    preds = logits.argmax(axis=-1)
+    acc = accuracy_score(labels, preds)
+    prec, rec, f1, _ = precision_recall_fscore_support(labels, preds, average="weighted")
+    return {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1}
+
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=test_dataset,
     tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
 )
 
-# 6. Train
-trainer.train()
+# ---------------------------
+# 6. MLflow logging
+# ---------------------------
+mlflow.set_experiment("Sentiment Analysis - DistilBERT")
 
-# 7. Save
-model_dir = ensure_model_dirs("models/hugging_face")
-trainer.save_model(model_dir)
-tokenizer.save_pretrained(model_dir)
+with mlflow.start_run():
+    # Train
+    trainer.train()
 
-print("✅ Training complete! Model saved to models/hugging_face")
+    # Evaluate
+    metrics = trainer.evaluate()
+    mlflow.log_metrics(metrics)
+
+    # Log hyperparameters
+    mlflow.log_params({
+        "model_name": model_name,
+        "learning_rate": training_args.learning_rate,
+        "batch_size": training_args.per_device_train_batch_size,
+        "num_epochs": training_args.num_train_epochs
+    })
+
+    # Create a signature from a small batch of test inputs
+    sample_inputs = tokenizer(list(test_df["review"].head(5)), padding=True, truncation=True, max_length=128, return_tensors="pt")
+    signature = infer_signature(sample_inputs, trainer.predict(test_dataset).predictions.argmax(axis=-1))
+
+    # Log model with signature and pip requirements (no input_example)
+    mlflow.transformers.log_model(
+        transformers_model={"model": model, "tokenizer": tokenizer},
+        artifact_path="model",
+        signature=signature,
+        pip_requirements=[
+            f"torch=={torch.__version__}",
+            f"transformers=={transformers.__version__}",
+            "datasets>=2.14.0",
+            "accelerate>=0.20.0",
+            "scikit-learn>=1.2.0",
+        ],
+    )
+
+print("✅ Training complete! Metrics & model logged to MLflow.")

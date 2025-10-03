@@ -38,3 +38,6 @@ docker-run:
 clean:
 	rm -rf $(NAIVE_BAYES_PATH)
 	rm -rf $(HUGGING_FACE_PATH)
+
+clean:
+	mflow ui
