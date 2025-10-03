@@ -35,3 +35,6 @@ models/
 
 # evaluation images
 evaluation/confusion-matrix/
+
+# MLflow
+mlruns/
